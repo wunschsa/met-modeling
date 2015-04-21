@@ -20,14 +20,16 @@ def parse(file):
 			print line
 			read = 1
 			line = re.sub('GENES|\t|\s{2,10}','',line)
+			outfile.write(line + "\n")
 			while read > 0:
-				if not re.search('[A-Z]{3,4}\:',line) or re.search('DBLINKS',line):
+				if not re.search('.*[A-Z]{3,4}\:',line) or re.search('DBLINKS',line):
+					print "HIT IF"
 					keepgoing = False
 					outfile.close()
 					infile.close()
 					break
 				outfile.write(line + "\n")
-				#print line
+				print line
 				line = infile.next()
 				line = line.strip()
 				
