@@ -8,16 +8,16 @@ import re, sys
 filelist = open(sys.argv[1])
 filelist = filelist.readlines()
 
-for files in filelist:
-	files = files.strip()
+def parse(file):
 	keepgoing = True
 	infile = open(files)
-	outfile = ''.join(( files + "_genes.txt"))
-	outfile = open(outfile, "w")
-	line = infile.next()
+        outfile = ''.join(( files + "_genes.txt"))
+        print outfile
+        outfile = open(outfile, "w")
+        line = infile.next()
 	while keepgoing:
-		
 		if re.search('GENES',line):
+			print line
 			read = 1
 			line = re.sub('GENES|\t|\s{2,10}','',line)
 			while read > 0:
@@ -33,6 +33,13 @@ for files in filelist:
 				
 				
 		else:
-			line = infile.next()
-			line = line.strip()
-        	
+			try:
+				line = infile.next()
+				line = line.strip()
+			except:
+				break
+
+for files in filelist:
+        files = files.strip()
+        print files	
+	parse(files)
