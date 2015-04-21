@@ -10,10 +10,10 @@ filelist = filelist.readlines()
 
 def parse(file):
 	keepgoing = True
-	infile = open(files)
-        outfile = ''.join(( files + "_genes.txt"))
-        outfile = open(outfile, "w")
-        line = infile.next()
+	infile = open(file)
+    outfile = ''.join(( files + "_genes.txt"))
+    outfile = open(outfile, "w")
+    line = infile.next()
 	while keepgoing:
 		if re.search('GENES',line):
 			read = 1
@@ -38,5 +38,5 @@ def parse(file):
 				break
 
 for files in filelist:
-        files = files.strip()
+    files = files.strip()
 	parse(files)
