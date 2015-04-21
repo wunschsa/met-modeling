@@ -1,13 +1,17 @@
 #!/usr/bin/python -tt
 
-import metmodel_current
-import metmodel_gurobi
+import metmodel_current, metmodel_gurobi
 import wil2metmodelpy
 from copy import deepcopy
-
+import sys
+try:
+  name = str(sys.argv[1]).split('.')[0]
+except:
+  print "Please input the name or abbreviation of the organism"
+  sys.exit(2)
 model = metmodel_gurobi.gurobicb()
 
-outprefix = "tfu"
+outprefix = name
 epsilon = 0.001
 ########################
 # build from .wil

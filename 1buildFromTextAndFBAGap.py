@@ -1,18 +1,19 @@
 #!/usr/bin/python -tt
 
-import metmodel_current
-import metmodel_gurobi
-import wil2metmodelpy
+import metmodel_current, metmodel_gurobi, wil2metmodelpy, sys
 from copy import deepcopy
-
-
+try:
+  reactionfile = sys.argv[1]
+except:
+  print "Please specify reaction model file (eg: 1buildFromTextAndFBAGap.py my.model.txt)"
+name = reactionfile.split('.')[0]
 model = metmodel_gurobi.gurobicb()
-outprefix = "gfaj"
-reactionfname = "models/GFAJ.model.txt"
-exchangefname = ""
-biomassfname = ""
-sourcesfname = ""
-escapesfname = ""
+outprefix = name
+reactionfname = reactionfile
+exchangefname = '' #''.join((name + '.exchanges.txt'))
+biomassfname = ''#''.join((name + 'biomass.txt'))
+sourcesfname = ''#''.join((name + 'sources.txt'))
+escapesfname = ''#''.join((name + 'escapes.txt'))
 epsilon = 0.001
 
 ##############################

@@ -1,9 +1,14 @@
 #!/usr/bin/python -tt
 
 # Ruppin  analysis of syw using the datasets from Tetu et al., 2009 about phosphate stress.
-
-outprefix = "tfu"
-gprfname = "models/tfu.init.yaml.gpr"
+import sys
+try:
+	name = str(sys.argv[1]).split('.')[0]
+except:
+	print "Please input the name or abbreviation of the organism"
+	sys.exit(2)
+outprefix = name
+gprfname = ''.join((name + '.gpr'))
 
 gammas = (-0.1, 0.1)	# correlates to type I error of alpha = 0.00005
 
