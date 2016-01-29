@@ -17,7 +17,7 @@ class Asgard(object):
         self.mapping_fp = mapping_fp
 
     def run(self):
-        sp.Popen(['asgard','-i',self.infile,'-p',self.blast,'-n',self.nodes,self.dblist,self.fa_dblist,'-l',mapping_fp]).wait()
+        sp.Popen(['asgard','-i',self.infile,'-p',self.blast,'-n',self.nodes,self.dblist,self.fa_dblist,'-l',self.mapping_fp]).wait()
 
 tfu = Asgard('tfu.fasta')
 tfu.run()
