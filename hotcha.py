@@ -36,5 +36,5 @@ class Asgard(object):
         sp.Popen(['asgard','-i',self.infile,'-p',self.blast,'-n',self.nodes,self.dblist,self.fa_dblist,'-l',self.mapping_fp]).wait()
 
 if __name__ == '__main__':
-    tfu = Asgard('tfu.fasta') # example usage of the Asgard Object
+    tfu = Asgard('tfu.fasta') # example usage of creating an instance of the Asgard Object
     tfu.run() # run the pipeline

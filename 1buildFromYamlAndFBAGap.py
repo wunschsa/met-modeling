@@ -29,6 +29,7 @@ model.writeWil(outprefix + "Working.wil")
 ###############
 # build from .wil file
 ###############
+#For Ecoli the writeWil method is deleting some reactions... why?
 del model
 model = metmodel_gurobi.gurobicb()
 wilfname = outprefix + "Working.wil"
