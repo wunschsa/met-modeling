@@ -31,7 +31,7 @@ ap.add_argument("-e","--epsilon",dest="ep",default=0.001,type=float,help="Specif
 ap.add_argument("-s","--sources",dest="src",default="",help="Specify a sources file.")
 ap.add_argument("-c","--escapes",dest="esc",default="",help="Specify an escapes file.")
 ap.add_argument("-r","--biomass-rxn-id",dest="bmrid",default="",help="If using SBML/SEED you MUST specify a biomass reaction ID.")
-ap.add_argument("-ndi","--no-data-integration",dest="ndi",action=store_true,default=False,help="Skip integration with experimentally obtained data (proteomic/metabolic/transciptomic/etc.) ")
+ap.add_argument("-ndi","--no-data-integration",dest="ndi",action="store_true",default=False,help="Skip integration with experimentally obtained data (proteomic/metabolic/transciptomic/etc.) ")
 args = ap.parse_args()
 class MetModelPipeline(object):
     def __init__(self,args):
