@@ -15,6 +15,7 @@ import sys, re, time
 import metmodel_current as mc
 import metmodel_gurobi as mg
 import wil2metmodelpy as w2m
+import eq_current
 from argparse import ArgumentParser
 from copy import deepcopy
 from os import path
@@ -49,7 +50,7 @@ class MetModelPipeline(object):
         self.escapesfname = args.esc
         self.infile = args.fn
         self.start_type = args.ty
-        self.model = mg.gurobiocb()
+        self.model = mg.gurobicb()
         self.biomassReactionID = args.bmrid
         self.wilfname = self.outprefix + "Working.wil"
         self.modelname = self.wilfname[0:(len(self.wilfname)-4)]
@@ -79,7 +80,7 @@ class MetModelPipeline(object):
             self.model.writeWil(self.outprefix + "Stable.wil")
             self.write = False
         del self.model
-        self.model = mg.gurobiocb()
+        self.model = mg.gurobicb()
         w2m.wil2metmodel(self.wilfname)
         self.model.build_from_textfiles(modelfile=self.modelname + ".reactions", biomassfile=self.modelname + ".biomass", sourcesfile=self.modelname+".sources", escapesfile=self.modelname +".escapes",exchangesfile="")
         if self.write:
@@ -87,9 +88,9 @@ class MetModelPipeline(object):
             self.model.writeWil(self.outprefix + "Stable.wil")
 
     def solve(self,verbose = False,withdb = False):
-        self.model.solve(verbose=verbose,out=self.outprefix + draft)
+        self.model.solve(verbose=verbose,out=self.outprefix + 'draft')
 
-        if self.model.OBJECTIVE_VALUE < epsilon:
+        if self.model.OBJECTIVE_VALUE < self.epsilon:
             model2 = deepcopy(self.model)
         if withdb:
             model2.fbagapdb(out=self.outprefix)
@@ -97,14 +98,14 @@ class MetModelPipeline(object):
             model2.fbagapnodb(out=self.outprefix)
 
         self.model.writeECfile(self.outprefix  + "ec1.txt")
-        metfile = open(self.outprefix + "metabolites1.txt")
+        metfile = open(self.outprefix + "metabolites1.txt","w")
         numspecies = 0
         for species in self.model.SPECIES.keys():
-            if not species.endswtih("_b"):
+            if not species.endswith("_b"):
                 metfile.write("%s\n" % (species))
                 numspecies += 1
         numreactions = 0
-        for reactions in model.REACTIONS.keys():
+        for reactions in self.model.REACTIONS.keys():
             if (not reactions.startswith("R_SRC")) and (not reactions.startswith("R_ESC")) and (not reactions.startswith("R_EXCH")):
                 numreactions += 1
         del model2
@@ -112,7 +113,7 @@ class MetModelPipeline(object):
         return numspecies,numreactions
 
     def gapfill(self):
-        self.model = mg.gurobiocb()
+        self.model = mg.gurobicb()
         w2m.wil2metmodel(self.wilfname)
         self.model.build_from_textfiles(modelfile=self.modelname + ".reactions", biomassfile=self.modelname + ".biomass", sourcesfile=self.modelname+".sources", escapesfile=self.modelname +".escapes", exchangesfile="")
         try:
@@ -151,7 +152,7 @@ class MetModelPipeline(object):
 
     def fba(self):
         print ("Trying FBA")
-        if self.model.OBJECTIVE_VALUE < epsilon:
+        if self.model.OBJECTIVE_VALUE < self.epsilon:
             print ("Flux was zero, gap filling...")
             model3 = deepcopy(model)
             model3.fbagapdb(out=self.outprefix)
@@ -160,16 +161,19 @@ class MetModelPipeline(object):
             gapfile = open(self.outprefix + ".gap.xls", "w")
             gapfile.write("added sources:\nadded escapes:\nadded reactions:\n")
             gapfile.close()
-        del model3
+        try:
+            del model3
+        except:
+            pass
         self.model.writeECfile(self.outprefix + "ec2.txt")
-        metfile = open(self.outprefix + "metabolites2.txt")
+        metfile = open(self.outprefix + "metabolites2.txt","w")
         numspecies = 0
         for species in self.model.SPECIES.keys():
-            if not species.endswtih("_b"):
+            if not species.endswith("_b"):
                 metfile.write("%s\n" % (species))
                 numspecies += 1
         numreactions = 0
-        for reactions in model.REACTIONS.keys():
+        for reactions in self.model.REACTIONS.keys():
             if (not reactions.startswith("R_SRC")) and (not reactions.startswith("R_ESC")) and (not reactions.startswith("R_EXCH")):
                 numreactions += 1
         del self.model
@@ -179,7 +183,7 @@ class MetModelPipeline(object):
         """
         Ruppin  analysis of syw using the datasets from Tetu et al., 2009 about phosphate stress.
         """
-        gprfname = self.outprefix + '.gpr'
+        gprfname = self.infile + '.gpr'
         def makeCallsDict( allRxns, hirxns, lorxns ):
             calls = {}
             for r in hirxns:
@@ -196,7 +200,7 @@ class MetModelPipeline(object):
             for r in allRxns:
                 assert not calls[r] == None
             return calls
-        self.model = mg.gurobiocb()
+        self.model = mg.gurobicb()
         w2m.wil2metmodel(self.wilfname)
         self.model.build_from_textfiles(modelfile=self.modelname + ".reactions", biomassfile=self.modelname + ".biomass", sourcesfile=self.modelname+".sources", escapesfile=self.modelname +".escapes", exchangesfile="")
         if verbose:
@@ -244,7 +248,7 @@ class MetModelPipeline(object):
                     i = i[1:]
                 if ')' in i:
                     i = i[:-1]
-                if i in model.PROTEIN2GENE:
+                if i in self.model.PROTEIN2GENE:
                     grr = grr.replace(i, model.PROTEIN2GENE[i])
                     
             #add to cache for printing...                                                                       
@@ -258,31 +262,31 @@ class MetModelPipeline(object):
                     cache[pathwayname][ec][ ('\t').join((reaction, name, str(reversible), pathwayname, ec, fluxes['fba'][reaction], fluxes[self.outprefix][reaction], reactionequation)) ] = 1
         paths = cache.keys()
         paths.sort()
-        outfile = open(self.outprefix+"Ruppin.xls","w")
+        outfile = open(self.outprefix+"integrated.xls","w")
 
         for path in paths:
             ecs = cache[path].keys()
             ecs.sort()
             for ec in ecs:
                 for r in cache[path][ec]:
-                    print >> outfile,r
+                    outfile.write("%s\n" % r)
         del self.model
 
     def mapFlux(self):
-        self.model = mg.gurobiocb()
+        self.model = mg.gurobicb()
         
         w2m.wil2metmodel(self.wilfname)
         self.model.build_from_textfiles(modelfile=self.modelname + ".reactions", biomassfile=self.modelname + ".biomass", sourcesfile=self.modelname+".sources", escapesfile=self.modelname +".escapes",exchangesfile="")
         self.model.solve(maps=True,out=self.outprefix)
-        model.writeECfile(outprefix + "ec4.txt")
-        metfile = open(outprefix+"metabolites4.txt", "w")
+        self.model.writeECfile(self.outprefix + "ec4.txt")
+        metfile = open(self.outprefix+"metabolites4.txt", "w")
         numspecies = 0
-        for species in model.SPECIES.keys():
+        for species in self.model.SPECIES.keys():
           if not species.endswith("_b"):
             metfile.write("%s\n" % (species))
             numspecies += 1
         numreactions = 0
-        for reactions in model.REACTIONS.keys():
+        for reactions in self.model.REACTIONS.keys():
           if (not reactions.startswith("R_SRC")) and (not reactions.startswith("R_ESC")) and (not reactions.startswith("R_EXCH")):
             numreactions += 1
         return numspecies,numreactions
