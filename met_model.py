@@ -1,10 +1,14 @@
 #!/usr/bin/env python2
+#####################################################
 # Metmodel Pipeline                                 #
 # Written By: Shaun Norris VCU Bioinformatics, M.S. #
+# Version: 1.0.0  Date: Feb. 2016                   #
 #####################################################
-"""
-This will invoke the four scripts required to generate a metbolic model.
-It was created to simplify the process of generating an in silico metabolic model.
+""" This is a tool created to generate an in silico model of the metabolic pathways
+for a bacterium.  Many of the methods here are moved from, or based off work 
+done by Dr. Niti Vanee, Dr. Paul Brooks (VCU), Dr. Steve Fong (VCU) and the whole
+effort wouldn't have been possible without the collaborative efforts of 
+Stephen Wunsch.
 """
 from __future__ import print_function,division
 import sys, re, time
@@ -15,7 +19,7 @@ from argparse import ArgumentParser
 from copy import deepcopy
 from os import path
 ### Get some args ####
-prog = "HOTCHA, the metabolic modelling Pipeline"
+prog = "HOTCHA, the metabolic modeling Pipeline"
 ap = ArgumentParser(prog=prog)
 ap.add_argument("-i","--in-file",dest="fn",required=True,help="Input the filename/path of the YAML/SEED/Text file you'd like to build from.")
 ap.add_argument("-t","--type",dest="ty",required=True,help="Specify the starting filetype. Choices are YAML,SBML,SEED,TXT.")
@@ -27,6 +31,7 @@ ap.add_argument("-e","--epsilon",dest="ep",default=0.001,type=float,help="Specif
 ap.add_argument("-s","--sources",dest="src",default="",help="Specify a sources file.")
 ap.add_argument("-c","--escapes",dest="esc",default="",help="Specify an escapes file.")
 ap.add_argument("-r","--biomass-rxn-id",dest="bmrid",default="",help="If using SBML/SEED you MUST specify a biomass reaction ID.")
+ap.add_argument("-ndi","--no-data-integration",dest="ndi",action=store_true,default=False,help="Skip integration with experimentally obtained data (proteomic/metabolic/transciptomic/etc.) ")
 args = ap.parse_args()
 class MetModelPipeline(object):
     def __init__(self,args):
@@ -111,7 +116,7 @@ class MetModelPipeline(object):
         w2m.wil2metmodel(self.wilfname)
         self.model.build_from_textfiles(modelfile=self.modelname + ".reactions", biomassfile=self.modelname + ".biomass", sourcesfile=self.modelname+".sources", escapesfile=self.modelname +".escapes", exchangesfile="")
         try:
-            print "Reading reactions to add"
+            print ("Reading reactions to add")
             gapfile = open(self.outprefix + ".gap.xls", "r")
             reactionsToAdd = []
             source = 0
@@ -140,9 +145,9 @@ class MetModelPipeline(object):
                 self.model.addReactionsFromDB(reactionsToAdd)  
                 self.model.set_sources(model.SOURCES)
                 self.model.set_escapes(model.ESCAPES)
-            except:
-                print ("No .gap.xls file")
-            self.model.writeWil(filename=self.outprefix+"Working.wil")
+        except:
+            print ("No .gap.xls file")
+        self.model.writeWil(filename=self.outprefix+"Working.wil")
 
     def fba(self):
         print ("Trying FBA")
@@ -152,9 +157,9 @@ class MetModelPipeline(object):
             model3.fbagapdb(out=self.outprefix)
         else:
             print ("Flux was positive.")
-                gapfile = open(self.outprefix + ".gap.xls", "w")
-                gapfile.write("added sources:\nadded escapes:\nadded reactions:\n")
-                gapfile.close()
+            gapfile = open(self.outprefix + ".gap.xls", "w")
+            gapfile.write("added sources:\nadded escapes:\nadded reactions:\n")
+            gapfile.close()
         del model3
         self.model.writeECfile(self.outprefix + "ec2.txt")
         metfile = open(self.outprefix + "metabolites2.txt")
@@ -170,7 +175,7 @@ class MetModelPipeline(object):
         del self.model
         return numspecies,numreactions
 
-    def ruppin_data_integration(self,gammas = (-0.1,0.1),exprfile = args.exp,forceBiomass = True, verbose = False):
+    def data_integration(self,gammas = (-0.1,0.1),exprfile = args.exp,forceBiomass = True, verbose = False):
         """
         Ruppin  analysis of syw using the datasets from Tetu et al., 2009 about phosphate stress.
         """
@@ -253,14 +258,14 @@ class MetModelPipeline(object):
                     cache[pathwayname][ec][ ('\t').join((reaction, name, str(reversible), pathwayname, ec, fluxes['fba'][reaction], fluxes[self.outprefix][reaction], reactionequation)) ] = 1
         paths = cache.keys()
         paths.sort()
-        outfi = open(self.outprefix+"Ruppin.xls","w")
+        outfile = open(self.outprefix+"Ruppin.xls","w")
 
         for path in paths:
             ecs = cache[path].keys()
             ecs.sort()
             for ec in ecs:
                 for r in cache[path][ec]:
-                    print >> outfi,r
+                    print >> outfile,r
         del self.model
 
     def mapFlux(self):
@@ -269,21 +274,34 @@ class MetModelPipeline(object):
         w2m.wil2metmodel(self.wilfname)
         self.model.build_from_textfiles(modelfile=self.modelname + ".reactions", biomassfile=self.modelname + ".biomass", sourcesfile=self.modelname+".sources", escapesfile=self.modelname +".escapes",exchangesfile="")
         self.model.solve(maps=True,out=self.outprefix)
-
-
-
-
+        model.writeECfile(outprefix + "ec4.txt")
+        metfile = open(outprefix+"metabolites4.txt", "w")
+        numspecies = 0
+        for species in model.SPECIES.keys():
+          if not species.endswith("_b"):
+            metfile.write("%s\n" % (species))
+            numspecies += 1
+        numreactions = 0
+        for reactions in model.REACTIONS.keys():
+          if (not reactions.startswith("R_SRC")) and (not reactions.startswith("R_ESC")) and (not reactions.startswith("R_EXCH")):
+            numreactions += 1
+        return numspecies,numreactions
 
 
 def main(args):
     model = MetModelPipeline(args)
     model.build_wil()
     num_metabolites,num_reactions = model.solve()
-    print ("Step 1 complete with, %i reactions and %i metabolies." % (num_metabolites,num_reactions))
+    print ("Step 1. complete with, %i reactions and %i metabolies." % (num_metabolites,num_reactions))
     model.gapfill()
     num_metabolites,num_reactions = model.fba()
-    print ("Gap Fill & FBA complete with, %i reactions and %i metabolites."% (num_metabolites,num_reactions))
-
+    print ("Step 2. Gap Fill & FBA complete with, %i reactions and %i metabolites."% (num_metabolites,num_reactions))
+    if not args.ndi:
+        model.data_integration(exprfile=args.exp)
+        print ("Step 3. Data Integration is now complete.")
+    num_metabolites,num_reactions = model.mapFlux()
+    print ("Final step is now complete, model is ready.")
+    print ("Final model contains %i reactions and %i metabolites" % (num_metabolites,num_reactions))
 
 if __name__ == '__main__':
     if len(sys.argv) < 8:
